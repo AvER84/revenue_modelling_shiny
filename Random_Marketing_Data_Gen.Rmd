@@ -1,0 +1,59 @@
+---
+title: "Generating_Imaginary_Marketing_Data"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+
+library(lubridate)
+library(dplyr)
+library(ggplot2)
+library(plotly)
+```
+
+## Generating Some example Marketing Data to Build and Test the Shiny App with.
+
+First of all, let's generate a range of dates which will represent our existing historical data range:
+
+```{r Dates}
+date_seq <- seq(ymd("2017-01-01"),ymd("2017-12-31"),"days")
+historic <- data.frame(date = date_seq)
+historic$week_day <- lubridate::wday(historic$date, label=TRUE)
+historic
+```
+
+Next up for this excercise we will make some assumptions about how budget is planned on this imaginary account.
+Each Month, for the last 5 days, there will be a sale.
+When a sale is on, spend will increase,
+
+So let's plan spend...
+We will have a constant spend, which fluctuates randomly from day to day.
+When a sale is on, spend will increase by 50% or so, nd the spend will increase each day until the end of the sale.
+
+```{r Spend}
+#generate a base spend rate, which varies a random amount each day:
+
+
+#List the dates where we will be in sale, as a function of the last 5 days of each month.
+
+#function for last day of the month
+
+#build the list
+
+
+```
+
+
+
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
