@@ -34,8 +34,17 @@ When a sale is on, spend will increase by 50% or so, nd the spend will increase 
 
 ```{r Spend}
 #generate a base spend rate, which varies a random amount each day:
+historic$spend <- 10000 
 
+for (i in 1:nrow(historic)) {
+  historic$spend[i] <- historic$spend[i] + runif(1, min=-1000, max=1000)
+}
 
+historic %>% 
+  ggplot(aes(x = date, y = spend)) +
+  geom_line() +
+  ylim(0, 15000)
+  
 #List the dates where we will be in sale, as a function of the last 5 days of each month.
 
 #function for last day of the month
@@ -44,16 +53,3 @@ When a sale is on, spend will increase by 50% or so, nd the spend will increase 
 
 
 ```
-
-
-
-
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
