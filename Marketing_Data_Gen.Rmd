@@ -27,32 +27,76 @@ historic <- data.frame(date = date_seq)
 
 historic$week_day <- lubridate::wday(historic$date, label=TRUE)
 
-historic %>% head %>% formattable()
+historic %>% head 
 ```
 
 Next up for this excercise we will make some assumptions about how budget is planned on this imaginary account.
 Each Month, for the last 5 days, there will be a sale.
 When a sale is on, spend will increase,
 
-So let's plan spend...
+So let's build our spend variable...
 We will have a constant spend, which fluctuates randomly from day to day.
 When a sale is on, spend will increase by 50% or so, nd the spend will increase each day until the end of the sale.
 
-In step 1, we create a base spend rate, which varies a random amount each day:
+In step 1, we create a base spend rate, which varies a random amount each day, also assuming they have been ramping up spend over the year:
 
 ```{r Spend}
 
-historic$spend <- 10000 
+historic$spend <- 5000 
 
+for (i in 2:nrow(historic)) {
+  historic$spend[i] <- historic$spend[i-1] + runif(1, min=30, max=50) %>% round(2) - i/11
+}
 
 for (i in 1:nrow(historic)) {
-  historic$spend[i] <- historic$spend[i] + runif(1, min=-1000, max=1000)
+  historic$spend[i] <- historic$spend[i] + runif(1, min=-500, max=500) %>% round(2)
 }
+
 historic %>% head %>% formattable()
-historic %>% 
+
+plot1 <- historic %>% 
   ggplot(aes(x = date, y = spend)) +
   geom_line() +
-  ylim(0, 15000)
+  ylim(0, 20000) 
+
+ggplotly(plot1)
 ```
 
 Now let's list the dates where we will be in sale, as a function of the last 5 days of each month.
+
+```{r Sales}
+historic <- historic %>% 
+  mutate(Sale = case_when(date >= ceiling_date(date, "month")-6 & date <= ceiling_date(date, "month")-1 ~ "Sale",
+         !(date >= ceiling_date(date, "month")-6 & date <= ceiling_date(date, "month")-1) ~ "BAU"))
+
+historic %>% datatable
+```
+
+Now we need to make spend increase during sale periods
+
+```{r Sales spend}
+
+#historic$spend[historic$Sale == "Sale"] <- historic$spend + round(runif(1, min=2000, max=5000),2)
+
+for (i in 1:nrow(historic)) {
+  if (historic$Sale[i]=="Sale") {
+    historic$spend[i] <- historic$spend[i] + runif(1, min=2000, max=4000) %>% round(2)
+  }
+}
+
+maxspend <- max(historic$spend)
+
+  
+historic %>% 
+  mutate(salevec = case_when(
+  Sale == "Sale" ~ 1/0
+  )) %>% 
+  ggplot(aes(x = date, y = salevec)) +
+  geom_bar(stat = "identity", aes(y=salevec), fill="blue", alpha=.1, width = 1) +
+  geom_line(aes(x = date, y = spend)) +
+  ylim(0, maxspend+1000) + ylab("Spend")
+```
+
+Now we have some spend data! So now we have to make some imaginary revenue. I suggest we assume that revenue is a log function of spend, with some randomness. Then let's increase revenue a random amount during sales to get a relatively random but strong effect of a larger return on investment from advertising.
+
+
