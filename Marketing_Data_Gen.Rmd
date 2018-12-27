@@ -5,7 +5,7 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
 
 library(shinythemes)
 library(lubridate)
@@ -34,13 +34,13 @@ historic$week_day <- lubridate::wday(historic$date, label=TRUE)
 historic %>% head 
 ```
 
-Next up for this excercise we will make some assumptions about how budget is planned on this imaginary account.
-Each Month, for the last 5 days, there will be a sale.
-When a sale is on, spend will increase,
+Next up for this excercise we will make some assumptions about how the budget is planned on this imaginary account.
+Each Month, for the last 5 days of the Month, there will be a sale.
+When a sale is on, spend will increase.
 
 So let's build our spend variable...
 We will have a constant spend, which fluctuates randomly from day to day.
-When a sale is on, spend will increase by 50% or so, nd the spend will increase each day until the end of the sale.
+When a sale is on, spend will increase by 50% or so.
 
 In step 1, we create a base spend rate, which varies a random amount each day, also assuming they have been ramping up spend over the year:
 
@@ -76,7 +76,7 @@ historic <- historic %>%
 historic %>% datatable
 ```
 
-Now we need to make spend increase during sale periods
+Now we need to make spend increase during sale periods.
 
 ```{r Sales spend}
 
@@ -99,61 +99,51 @@ historic %>%
 
 ```
 
-Now we have some spend data! So now we have to make some imaginary revenue. I suggest we assume that revenue is increasing function of spend, with some randomness. Then let's increase revenue a random amount during sales to get a relatively random but strong effect of a larger return on investment from advertising.
+Now we have some spend data! So now we have to make some imaginary revenue. I suggest we assume that revenue is  an increasing function of spend, with some randomness. Then let's increase revenue during sales to get a relatively random but strong effect of a larger return on investment from advertising.
 
 Over time performance will improve slowly, and during sales it will also improve.
 
-```{r Revenue}
+```{r Revenue, warning=FALSE}
 historic$revenue <- 0
-suppressWarnings(
 for (i in 1:nrow(historic)) {
     historic$revenue[i] <- (historic$spend[i] * (3.5 + runif(1, min=-.5, max=.5)+i/400)) %>% round(2)
 }
-)
-suppressWarnings(
+
 for (i in 1:nrow(historic)) {
   if (historic$Sale=="Sale") {
     historic$revenue[i] <- historic$revenue[i] * (runif(1, min=2, max=4)+i/100)
   }
 }
-)
 
 maxsrev <- max(historic$revenue)
-plot3 <- historic %>% 
-  mutate(salevec = case_when(
-  Sale == "Sale" ~ 1/0
-  )) %>% 
-  ggplot(aes(x = date, y = salevec)) +
-  geom_bar(stat = "identity", aes(y=salevec), fill="blue", alpha=.1, width = 1) +
-  geom_line(aes(x = date, y = spend), size = 1) +
-  geom_line(aes(x = date, y = revenue), col = "dark green", size = 1) +
-  ylim(0, maxsrev+1000) + ylab("Spend") 
+
+historic$Salevec <- historic$Sale %in% c("Sale")
+
+plot3 <- historic %>% ggplot(aes(x=date, y=revenue)) + 
+  geom_area(aes(y=Salevec*max(revenue)), fill="light blue", alpha = .7) + geom_line(col='dark green') +
+  geom_line(aes(y= spend)) +
+  ylim(0, maxsrev+1000) + 
+  ylab("£") 
 
 ggplotly(plot3)
 
-historic %>% 
-  mutate(ROAS = revenue/spend) %>% 
-  slice(nrow(historic):360)
 ```
 
-Now let's also make thursdays generate more revenue.
+Now let's also make Thursdays generate more revenue.
 
 ```{r}
 for (i in 1:nrow(historic)) {
   if (historic$week_day[i]=="Thu") {
-    historic$revenue[i] <- historic$revenue[i] * 1.7
+    historic$revenue[i] <- historic$revenue[i] * 1.2
   }
 }
 
 plot4 <- historic %>% 
-  mutate(salevec = case_when(
-  Sale == "Sale" ~ 1/0
-  )) %>% 
-  ggplot(aes(x = date, y = salevec)) +
-  geom_bar(stat = "identity", aes(y=salevec), fill="blue", alpha=.1, width = 1) +
-  geom_line(aes(x = date, y = spend), size = 1) +
-  geom_line(aes(x = date, y = revenue), col = "dark green", size = 1) +
-  ylim(0, maxsrev+1000) + ylab("Spend") 
+  ggplot(aes(x = date)) +
+  geom_area(aes(y=Salevec*max(revenue)), fill="light blue", alpha = .7) +
+  geom_line(aes(y = spend)) +
+  geom_line(aes(y = revenue), col = "dark green") +
+  ylab("Spend") 
 
 
 ggplotly(plot4)
@@ -164,14 +154,14 @@ historic %>%
 
 ```
 
-As we can see in the final table of thse last days of the year, the company has achieve a return on advertising spend of nearly 5.
+As we can see in the final table of the last days of the year, the company has achieved a return on advertising spend of nearly 5.
 
-We are going to use this data to do some regression modelling, so we need to format our variable a little so r knows how to treat them.
+We are going to use this data to do some regression modelling, so we need to format our variables a little so r knows how to treat them.
 
 The trick and interesting part about weekdays, is how best to measure each weekday's independent impact.
 With an ordered factor of more than two categories, one weekday will be the reference, to which all others will be compared.
 
-I would like to model a variable for each weekday, and calculate the model repeatedly for each day.
+I would like to model a variable for each weekday, and calculate the model repeatedly for each day, with each weekday being a boolean variable.
 
 ```{r}
 
@@ -195,13 +185,13 @@ models <- lapply(varlist, function(x) {
     mutate_if(is.numeric, round, 3) %>% 
     mutate(term = substr(term, 1, 3))
 })
+
 weekday_models <- models %>% bind_rows() 
 
 weekday_models %>% formattable()
-
 ```
 
-This is good. I want to add more columns which show the estimates for each other paramter in that model. Looping through the models again is probably a waste of processing but it's all I can think of now! I can run that again, spread the estimates in each model.
+This is good. I want to add more columns which show the estimates for other parameters in each model. Looping through the models again is probably a waste of processing but it's all I can think of now! I can run that again and spread the estimates in each model. I would also like to get a few values for model fit for each regression into the table.
 
 ```{r}
 models2 <- lapply(varlist, function(x) {
