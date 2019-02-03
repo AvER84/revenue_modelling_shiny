@@ -25,49 +25,49 @@ ui <- navbarPage("Modelling Return on Ad Spend in R",
          sliderInput(inputId = "mon", 
                      label = "Increase Revenue on Mondays",
                      min = 1,
-                     max = 1.2,
+                     max = 2,
                      step = .0001,
                      value = 1
                      ),
          sliderInput(inputId = "tue", 
                      label = "Increase Revenue on Tuesdays",
                      min = 1,
-                     max = 1.2,
+                     max = 2,
                      step = .0001,
                      value = 1
          ),
          sliderInput(inputId = "wed", 
                      label = "Increase Revenue on Wednesdays",
                      min = 1,
-                     max = 1.2,
+                     max = 2,
                      step = .0001,
                      value = 1
          ),
         sliderInput(inputId = "thu", 
                     label = "Increase Revenue on Thursdays",
                     min = 1,
-                    max = 1.2,
+                    max = 2,
                     step = .0001,
                     value = 1.2
         ),
         sliderInput(inputId = "fri", 
                     label = "Increase Revenue on Fridays",
                     min = 1,
-                    max = 1.2,
+                    max = 2,
                     step = .0001,
                     value = 1
         ),
         sliderInput(inputId = "sat", 
                     label = "Increase Revenue on Saturdays",
                     min = 1,
-                    max = 1.2,
+                    max = 2,
                     step = .0001,
                     value = 1
         ),
         sliderInput(inputId = "sun", 
                     label = "Increase Revenue on Sundays",
                     min = 1,
-                    max = 1.2,
+                    max = 2,
                     step = .0001,
                     value = 1
         ),
@@ -81,7 +81,8 @@ ui <- navbarPage("Modelling Return on Ad Spend in R",
       mainPanel(
          plotlyOutput("past_performance_plot"),
          formattableOutput("weekday_model_tbl"),
-         formattableOutput("model")
+         formattableOutput("model"),
+         plotlyOutput("spend_rev_plot")
 
       )
    )
@@ -112,7 +113,7 @@ server <- function(input, output) {
         round(2)
     }
     
-    for (i in 1:nrow(hist)) {
+    for (i in seq(1:nrow(hist))) {
       hist$spend[i] <- 
         (hist$spend[i] + runif(1, min=-100, max=100)) %>% 
         round(digits = 2)
@@ -128,10 +129,10 @@ server <- function(input, output) {
         ) ~ "BAU"
       ))
     
-    for (i in 1:nrow(hist)) {
+    for (i in seq(1:nrow(hist))) {
       if (hist$Sale[i]=="Sale") {
         hist$spend[i] <- 
-          (hist$spend[i] + runif(1, min=7000, max=8000)) %>% 
+          (hist$spend[i] + runif(1, min=1000, max=2000)) %>% 
           round(2)
       }
     }
@@ -141,11 +142,14 @@ server <- function(input, output) {
     maxspend <- max(hist$spend)
     
     hist$revenue <- 0
-    for (i in 1:nrow(hist)) {
-      hist$revenue[i] <- 
-        (hist$spend[i] * (3.5 + (i/500))) %>% 
-        round(2)
-    }
+hist <- hist %>% 
+  mutate(
+    revenue = case_when(Sale == "BAU" ~ spend * (3.5) + 
+                          runif(1, min = 1, max = 2),
+                        Sale == "Sale" ~ spend * (8.5) + 
+                          runif(1, min = 1, max = 2)
+                        )
+  )
     
     hist$Sale <- factor(hist$Sale, ordered = FALSE)
     
@@ -154,12 +158,6 @@ server <- function(input, output) {
     hist_r <- reactive({ 
       
       hist_r <- hist
-    for (i in 1:nrow(hist_r)) {
-      if (hist_r$Sale=="Sale") {
-        hist_r$revenue[i] <- 
-          hist_r$revenue[i] * (runif(1, min=4, max=5)+i/100)
-      }
-    }
     
     for (i in 1:nrow(hist_r)) {
       if (hist_r$week_day[i]=="Mon") {
@@ -255,6 +253,12 @@ server <- function(input, output) {
     ggplotly(past_plot)
    })
   
+  output$spend_rev_plot <- renderPlotly({
+    s_r_plot <- hist_r() %>% 
+      ggplot(aes(x = spend, y = revenue)) +
+      geom_point(aes(col = Sale))
+    ggplotly(s_r_plot)
+  })
 # models ----  
   
    mod <- reactive({
