@@ -1,11 +1,10 @@
 ---
 title: "Generating Marketing Data"
-runtime: shiny
 output: html_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
+```{r setup, include=FALSE, echo = FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, include = TRUE)
 
 library(shinythemes)
 library(lubridate)
@@ -46,7 +45,7 @@ can improve the model, and its ability to cope with data of less ariation or
 a smaller size. But making the best choice isn't very easy to automate. 
 
 
-##Marketing Data Generation
+## Marketing Data Generation
 
 On this page, I have written out the process of making our underlying
 imaginary digital marketing data set - how I made results improve over the year, during sales, etc.
@@ -98,7 +97,7 @@ plot1 <- historic %>%
   geom_line() +
   ylim(0, 20000) 
 
-ggplotly(plot1)
+plot1
 ```
 
 Now let's list the dates where we will be in sale, as a function of the last 5 days of each month.
@@ -131,7 +130,7 @@ plot2 <- historic %>%
   geom_line(aes(x = date, y = spend)) +
   ylim(0, maxspend+1000) + ylab("£")
 
-ggplotly(plot2)
+plot2
 ```
 
 Now we have some spend data! So now we have to make some imaginary revenue. I suggest we assume that revenue is  an increasing function of spend, with some randomness. Then let's increase revenue during sales to get a relatively random but strong effect of a larger return on investment from advertising.
@@ -158,7 +157,7 @@ plot3 <- historic %>% ggplot(aes(x=date)) +
   ylab("£") 
 
 
-ggplotly(plot3)
+plot3
 
 ```
 
@@ -179,7 +178,7 @@ plot4 <- historic %>%
   ylab("Spend") 
 
 
-ggplotly(plot4)
+plot4
 
 historic %>% 
   mutate(ROAS = round(revenue/spend,2)) %>% 

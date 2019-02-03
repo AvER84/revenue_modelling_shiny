@@ -12,7 +12,8 @@ library(broom)
 library(stringr)
 library(knitr)
 library(webshot)
-
+library(markdown)
+library(rmarkdown)
 ui <- navbarPage("Modelling Return on Ad Spend in R",
                  tabPanel("Interactive Model",
    
@@ -85,9 +86,8 @@ ui <- navbarPage("Modelling Return on Ad Spend in R",
       )
    )
    ),
-   tabPanel("Explanation",        
-   uiOutput("markdown1")
-            
+   tabPanel("Explanation", 
+            includeMarkdown("Marketing_Data_Gen.Rmd")            
   )
 )
 
@@ -328,10 +328,6 @@ server <- function(input, output) {
      
    })
 
-     # render markdown explainer file ----
-     output$markdown1 <- renderUI({
-       HTML(markdown::markdownToHTML(knit("Marketing_Data_Gen.Rmd", quiet = TRUE)))
-     })
    # end of server ----
    
 }
