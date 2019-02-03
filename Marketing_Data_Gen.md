@@ -4,21 +4,7 @@ runtime: shiny
 output: html_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
 
-library(shinythemes)
-library(lubridate)
-library(dplyr)
-library(tidyr)
-library(ggplot2)
-library(plotly)
-library(DT)
-library(formattable)
-library(purrr)
-library(broom)
-library(stringr)
-```
 ## Marketing Revenue App - Introduction
 This app explores how we can predict revenue generated from digital marketing
  based on a company that puts on a sale at the end of every Month. The 
@@ -59,7 +45,8 @@ further features.
 
 First of all, let's generate a range of dates which will represent our existing historical data range:
 
-```{r Dates}
+
+```r
 date_seq <- seq(ymd("2017-01-01"),ymd("2017-12-31"),"days")
 
 historic <- data.frame(date = date_seq)
@@ -67,6 +54,16 @@ historic <- data.frame(date = date_seq)
 historic$week_day <- lubridate::wday(historic$date, label=TRUE)
 
 historic %>% head 
+```
+
+```
+##         date week_day
+## 1 2017-01-01      Sun
+## 2 2017-01-02      Mon
+## 3 2017-01-03      Tue
+## 4 2017-01-04      Wed
+## 5 2017-01-05      Thu
+## 6 2017-01-06      Fri
 ```
 
 Next up, we will make some assumptions about how the budget is planned on this imaginary account.
@@ -79,8 +76,8 @@ When a sale is on, spend will increase by 50% or so.
 
 In step 1, we create a base spend rate, which varies a random amount each day, also assuming they have been ramping up spend over the year:
 
-```{r Spend}
 
+```r
 historic$spend <- 5000 
 
 for (i in 2:nrow(historic)) {
@@ -92,7 +89,52 @@ for (i in 1:nrow(historic)) {
 }
 
 historic %>% head %>% formattable()
+```
 
+
+<table class="table table-condensed">
+ <thead>
+  <tr>
+   <th style="text-align:right;"> date </th>
+   <th style="text-align:right;"> week_day </th>
+   <th style="text-align:right;"> spend </th>
+  </tr>
+ </thead>
+<tbody>
+  <tr>
+   <td style="text-align:right;"> 2017-01-01 </td>
+   <td style="text-align:right;"> Sun </td>
+   <td style="text-align:right;"> 5286.35 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 2017-01-02 </td>
+   <td style="text-align:right;"> Mon </td>
+   <td style="text-align:right;"> 5292.45 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 2017-01-03 </td>
+   <td style="text-align:right;"> Tue </td>
+   <td style="text-align:right;"> 5260.17 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 2017-01-04 </td>
+   <td style="text-align:right;"> Wed </td>
+   <td style="text-align:right;"> 5436.70 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 2017-01-05 </td>
+   <td style="text-align:right;"> Thu </td>
+   <td style="text-align:right;"> 5018.66 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 2017-01-06 </td>
+   <td style="text-align:right;"> Fri </td>
+   <td style="text-align:right;"> 4852.17 </td>
+  </tr>
+</tbody>
+</table>
+
+```r
 plot1 <- historic %>% 
   ggplot(aes(x = date, y = spend)) +
   geom_line() +
@@ -101,9 +143,12 @@ plot1 <- historic %>%
 ggplotly(plot1)
 ```
 
+![plot of chunk Spend](figure/Spend-1.png)
+
 Now let's list the dates where we will be in sale, as a function of the last 5 days of each month.
 
-```{r Sales}
+
+```r
 historic <- historic %>% 
   mutate(Sale = case_when(date >= ceiling_date(date, "month")-6 & date <= ceiling_date(date, "month")-1 ~ "Sale",
          !(date >= ceiling_date(date, "month")-6 & date <= ceiling_date(date, "month")-1) ~ "BAU"))
@@ -111,10 +156,12 @@ historic <- historic %>%
 historic %>% datatable
 ```
 
+![plot of chunk Sales](figure/Sales-1.png)
+
 Now we need to make spend increase during sale periods.
 
-```{r Sales spend}
 
+```r
 for (i in 1:nrow(historic)) {
   if (historic$Sale[i]=="Sale") {
     historic$spend[i] <- (historic$spend[i] + runif(1, min=2000, max=4000)) %>% round(2)
@@ -134,11 +181,14 @@ plot2 <- historic %>%
 ggplotly(plot2)
 ```
 
+![plot of chunk Sales spend](figure/Sales spend-1.png)
+
 Now we have some spend data! So now we have to make some imaginary revenue. I suggest we assume that revenue is  an increasing function of spend, with some randomness. Then let's increase revenue during sales to get a relatively random but strong effect of a larger return on investment from advertising.
 
 Over time performance will improve slowly, and during sales it will also improve.
 
-```{r Revenue, warning=FALSE}
+
+```r
 historic$revenue <- 0
 for (i in 1:nrow(historic)) {
     historic$revenue[i] <- (historic$spend[i] * (3.5 + runif(1, min=-.5, max=.5)+i/400)) %>% round(2)
@@ -159,12 +209,14 @@ plot3 <- historic %>% ggplot(aes(x=date)) +
 
 
 ggplotly(plot3)
-
 ```
+
+![plot of chunk Revenue](figure/Revenue-1.png)
 
 Now let's also make Thursdays generate more revenue.
 
-```{r}
+
+```r
 for (i in 1:nrow(historic)) {
   if (historic$week_day[i]=="Thu") {
     historic$revenue[i] <- historic$revenue[i] * 1.2
@@ -180,12 +232,17 @@ plot4 <- historic %>%
 
 
 ggplotly(plot4)
+```
 
+![plot of chunk unnamed-chunk-1](figure/unnamed-chunk-1-1.png)
+
+```r
 historic %>% 
   mutate(ROAS = round(revenue/spend,2)) %>% 
   slice(360:nrow(historic)) %>% datatable()
-
 ```
+
+![plot of chunk unnamed-chunk-1](figure/unnamed-chunk-1-2.png)
 
 As we can see in the final table of the last days of the year, the company has achieved a return on advertising spend of nearly 5.
 
@@ -196,8 +253,8 @@ With an ordered factor of more than two categories, one weekday will be the refe
 
 I would like to model a variable for each weekday, and calculate the model repeatedly for each day, with each weekday being a boolean variable.
 
-```{r}
 
+```r
 historic <- historic %>% 
   mutate(
     Sale = factor(Sale, ordered = FALSE),
@@ -224,9 +281,74 @@ weekday_models <- models %>% bind_rows()
 weekday_models %>% formattable()
 ```
 
+
+<table class="table table-condensed">
+ <thead>
+  <tr>
+   <th style="text-align:right;"> term </th>
+   <th style="text-align:right;"> estimate </th>
+   <th style="text-align:right;"> std.error </th>
+   <th style="text-align:right;"> statistic </th>
+   <th style="text-align:right;"> p.value </th>
+  </tr>
+ </thead>
+<tbody>
+  <tr>
+   <td style="text-align:right;"> Mon </td>
+   <td style="text-align:right;"> -1730.232 </td>
+   <td style="text-align:right;"> 721.608 </td>
+   <td style="text-align:right;"> -2.398 </td>
+   <td style="text-align:right;"> 0.017 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> Tue </td>
+   <td style="text-align:right;"> -1172.325 </td>
+   <td style="text-align:right;"> 724.537 </td>
+   <td style="text-align:right;"> -1.618 </td>
+   <td style="text-align:right;"> 0.107 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> Wed </td>
+   <td style="text-align:right;"> -1512.713 </td>
+   <td style="text-align:right;"> 722.809 </td>
+   <td style="text-align:right;"> -2.093 </td>
+   <td style="text-align:right;"> 0.037 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> Thu </td>
+   <td style="text-align:right;"> 8282.318 </td>
+   <td style="text-align:right;"> 582.561 </td>
+   <td style="text-align:right;"> 14.217 </td>
+   <td style="text-align:right;"> 0.000 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> Fri </td>
+   <td style="text-align:right;"> -612.821 </td>
+   <td style="text-align:right;"> 726.428 </td>
+   <td style="text-align:right;"> -0.844 </td>
+   <td style="text-align:right;"> 0.399 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> Sat </td>
+   <td style="text-align:right;"> -1151.788 </td>
+   <td style="text-align:right;"> 724.605 </td>
+   <td style="text-align:right;"> -1.590 </td>
+   <td style="text-align:right;"> 0.113 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> Sun </td>
+   <td style="text-align:right;"> -2068.147 </td>
+   <td style="text-align:right;"> 713.157 </td>
+   <td style="text-align:right;"> -2.900 </td>
+   <td style="text-align:right;"> 0.004 </td>
+  </tr>
+</tbody>
+</table>
+
 This is good. I want to add more columns which show the estimates for other parameters in each model. Looping through the models again is probably a waste of processing but it's all I can think of now! I can run that again and spread the estimates in each model. I would also like to get a few values for model fit for each regression into the table.
 
-```{r}
+
+```r
 models2 <- lapply(varlist, function(x) {
     lm(substitute(revenue ~ spend + Sale  + i, list(i = as.name(x))), data = historic) %>% 
     summary() %>% 
@@ -242,7 +364,86 @@ weekday_models <- weekday_models %>%
   left_join(models2 %>% bind_rows(), by = "term")
 
 weekday_models %>% formattable()
-  
 ```
+
+
+<table class="table table-condensed">
+ <thead>
+  <tr>
+   <th style="text-align:right;"> term </th>
+   <th style="text-align:right;"> estimate </th>
+   <th style="text-align:right;"> std.error </th>
+   <th style="text-align:right;"> statistic </th>
+   <th style="text-align:right;"> p.value </th>
+   <th style="text-align:right;"> SaleSale </th>
+   <th style="text-align:right;"> spend </th>
+  </tr>
+ </thead>
+<tbody>
+  <tr>
+   <td style="text-align:right;"> Mon </td>
+   <td style="text-align:right;"> -1730.232 </td>
+   <td style="text-align:right;"> 721.608 </td>
+   <td style="text-align:right;"> -2.398 </td>
+   <td style="text-align:right;"> 0.017 </td>
+   <td style="text-align:right;"> -3214.407 </td>
+   <td style="text-align:right;"> 5.194 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> Tue </td>
+   <td style="text-align:right;"> -1172.325 </td>
+   <td style="text-align:right;"> 724.537 </td>
+   <td style="text-align:right;"> -1.618 </td>
+   <td style="text-align:right;"> 0.107 </td>
+   <td style="text-align:right;"> -3210.529 </td>
+   <td style="text-align:right;"> 5.199 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> Wed </td>
+   <td style="text-align:right;"> -1512.713 </td>
+   <td style="text-align:right;"> 722.809 </td>
+   <td style="text-align:right;"> -2.093 </td>
+   <td style="text-align:right;"> 0.037 </td>
+   <td style="text-align:right;"> -3259.457 </td>
+   <td style="text-align:right;"> 5.199 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> Thu </td>
+   <td style="text-align:right;"> 8282.318 </td>
+   <td style="text-align:right;"> 582.561 </td>
+   <td style="text-align:right;"> 14.217 </td>
+   <td style="text-align:right;"> 0.000 </td>
+   <td style="text-align:right;"> -3287.264 </td>
+   <td style="text-align:right;"> 5.185 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> Fri </td>
+   <td style="text-align:right;"> -612.821 </td>
+   <td style="text-align:right;"> 726.428 </td>
+   <td style="text-align:right;"> -0.844 </td>
+   <td style="text-align:right;"> 0.399 </td>
+   <td style="text-align:right;"> -3229.789 </td>
+   <td style="text-align:right;"> 5.200 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> Sat </td>
+   <td style="text-align:right;"> -1151.788 </td>
+   <td style="text-align:right;"> 724.605 </td>
+   <td style="text-align:right;"> -1.590 </td>
+   <td style="text-align:right;"> 0.113 </td>
+   <td style="text-align:right;"> -3230.037 </td>
+   <td style="text-align:right;"> 5.199 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> Sun </td>
+   <td style="text-align:right;"> -2068.147 </td>
+   <td style="text-align:right;"> 713.157 </td>
+   <td style="text-align:right;"> -2.900 </td>
+   <td style="text-align:right;"> 0.004 </td>
+   <td style="text-align:right;"> -3203.415 </td>
+   <td style="text-align:right;"> 5.199 </td>
+  </tr>
+</tbody>
+</table>
 
 
